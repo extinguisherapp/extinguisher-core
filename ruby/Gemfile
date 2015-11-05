@@ -1,0 +1,10 @@
+# A sample Gemfile
+source "https://rubygems.org"
+
+gem "serve"
+gem "rack-singleshot", git: "https://github.com/benburkert/rack-singleshot"
+gem "serve_ext", git: "https://github.com/tka/serve_ext"
+gem "slim"
+gem "kramdown"
+gem "sass"
+gem "haml"

@@ -1,0 +1,60 @@
+GIT
+  remote: https://github.com/benburkert/rack-singleshot
+  revision: 4212d460e3295b0b39bdabeec502016b5977268e
+  specs:
+    rack-singleshot (0.2.1)
+      http_parser.rb
+      rack
+
+GIT
+  remote: https://github.com/tka/serve_ext
+  revision: 20f30e1af7ec663c0ae0cb7a0e9d545a71878300
+  specs:
+    serve_ext (0.0.0)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    activesupport (3.2.22)
+      i18n (~> 0.6, >= 0.6.4)
+      multi_json (~> 1.0)
+    haml (4.0.7)
+      tilt
+    http_parser.rb (0.6.0)
+    i18n (0.7.0)
+    kramdown (1.9.0)
+    multi_json (1.11.2)
+    rack (1.5.5)
+    rack-test (0.6.3)
+      rack (>= 1.0)
+    sass (3.4.19)
+    serve (1.5.2)
+      activesupport (~> 3.2.12)
+      i18n
+      rack (~> 1.5.2)
+      rack-test (~> 0.6.2)
+      tilt (~> 1.3.3)
+      tzinfo
+    slim (3.0.6)
+      temple (~> 0.7.3)
+      tilt (>= 1.3.3, < 2.1)
+    temple (0.7.6)
+    thread_safe (0.3.5)
+    tilt (1.3.7)
+    tzinfo (1.2.2)
+      thread_safe (~> 0.1)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  haml
+  kramdown
+  rack-singleshot!
+  sass
+  serve
+  serve_ext!
+  slim
+
+BUNDLED WITH
+   1.10.5
