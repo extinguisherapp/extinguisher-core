@@ -8,7 +8,7 @@ GIT
 
 GIT
   remote: https://github.com/tka/serve_ext
-  revision: 20f30e1af7ec663c0ae0cb7a0e9d545a71878300
+  revision: 0f5cc9d376a6ee89bd2f78f016cf2d46c3ab56d3
   specs:
     serve_ext (0.0.0)
 
