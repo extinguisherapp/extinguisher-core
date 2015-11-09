@@ -2,7 +2,6 @@ require_relative './bundle/bundler/setup'
 require 'rack'
 require 'rack/singleshot'
 require 'serve_ext'
-require 'rack/handler/fastcgi'
 require "socket"
 
 

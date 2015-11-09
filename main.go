@@ -18,9 +18,11 @@ import (
 type Project struct {
 	Path           string
 	HTMLSocketPath string
+	CSSSocketPath  string
 	Default        bool
 
 	htmlCmd     *exec.Cmd
+	cssCmd      *exec.Cmd
 	serverTimer *time.Timer
 	lock        sync.Mutex
 }
@@ -32,42 +34,25 @@ func NewProject(path string) *Project {
 func (p *Project) Name() string {
 	return path.Base(p.Path)
 }
+
 func (p *Project) StartService() {
-	serverTTL := 180 * time.Second
+	serverTTL := 5 * time.Second
 
 	p.lock.Lock()
 	if p.htmlCmd == nil {
 		p.serverTimer = time.NewTimer(serverTTL)
-		p.htmlCmd = exec.Command("ruby", "ruby/run.rb", p.Path)
-		stdout, err := p.htmlCmd.StdoutPipe()
-		checkErr(err)
-		go func() {
-			scanner := bufio.NewScanner(stdout)
-			for scanner.Scan() {
-				log.Println(scanner.Text()) // Println will add back the final '\n'
-			}
-			if err := scanner.Err(); err != nil {
-				log.Fatalln("reading standard output:", err)
-			}
-		}()
 
-		stderr, err := p.htmlCmd.StderrPipe()
+		p.htmlCmd = exec.Command("ruby", "ruby/html.rb", p.Path)
+		err := p.runServer("html", p.htmlCmd)
 		checkErr(err)
-		go func() {
-			scanner := bufio.NewScanner(stderr)
-			for scanner.Scan() {
-				log.Println(scanner.Text()) // Println will add back the final '\n'
-			}
-			if err := scanner.Err(); err != nil {
-				log.Fatalln("reading standard error:", err)
-			}
-		}()
 
-		err = p.htmlCmd.Start()
+		p.cssCmd = exec.Command("ruby", "ruby/compass.rb", p.Path)
+		err = p.runServer("css", p.cssCmd)
 		checkErr(err)
 
 		if err == nil {
 			p.HTMLSocketPath = path.Join(p.Path, "html.socket")
+			p.CSSSocketPath = path.Join(p.Path, "css.socket")
 		}
 
 		go func() {
@@ -76,10 +61,51 @@ func (p *Project) StartService() {
 			p.htmlCmd.Process.Kill()
 			p.htmlCmd.Wait()
 			p.htmlCmd = nil
+			p.cssCmd.Process.Kill()
+			p.cssCmd.Wait()
+			p.cssCmd = nil
 		}()
 	}
 	p.serverTimer.Reset(serverTTL)
 	p.lock.Unlock()
+}
+
+func (p *Project) runServer(name string, cmd *exec.Cmd) error {
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return err
+	}
+	go func() {
+		scanner := bufio.NewScanner(stdout)
+		for scanner.Scan() {
+			log.Println(scanner.Text()) // Println will add back the final '\n'
+		}
+		if err := scanner.Err(); err != nil {
+			log.Fatalln("reading standard output:", err)
+		}
+	}()
+
+	stderr, err := cmd.StderrPipe()
+
+	if err != nil {
+		return err
+	}
+	go func() {
+		scanner := bufio.NewScanner(stderr)
+		for scanner.Scan() {
+			log.Println(scanner.Text()) // Println will add back the final '\n'
+		}
+		if err := scanner.Err(); err != nil {
+			log.Fatalln("reading standard error:", err)
+		}
+	}()
+
+	err = cmd.Start()
+
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 var (
