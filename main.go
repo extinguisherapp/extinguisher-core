@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"github.com/gin-gonic/gin"
+	fsnotify "gopkg.in/fsnotify.v1"
 	"io/ioutil"
 	"log"
 	"net"
@@ -24,6 +25,7 @@ type Project struct {
 	htmlCmd     *exec.Cmd
 	cssCmd      *exec.Cmd
 	serverTimer *time.Timer
+	watcher     *fsnotify.Watcher
 	lock        sync.Mutex
 }
 
@@ -45,31 +47,79 @@ func (p *Project) StartService() {
 		p.htmlCmd = exec.Command("ruby", "ruby/html.rb", p.Path)
 		err := p.runServer("html", p.htmlCmd)
 		checkErr(err)
+		if err == nil {
+			p.HTMLSocketPath = path.Join(p.Path, "html.socket")
+		}
 
 		p.cssCmd = exec.Command("ruby", "ruby/compass.rb", p.Path)
 		err = p.runServer("css", p.cssCmd)
 		checkErr(err)
-
 		if err == nil {
-			p.HTMLSocketPath = path.Join(p.Path, "html.socket")
 			p.CSSSocketPath = path.Join(p.Path, "css.socket")
 		}
 
+		p.StartWatch()
 		go func() {
 			<-p.serverTimer.C
 			log.Println("stop " + p.Name() + " server")
-			p.htmlCmd.Process.Kill()
-			p.htmlCmd.Wait()
-			p.htmlCmd = nil
-			p.cssCmd.Process.Kill()
-			p.cssCmd.Wait()
-			p.cssCmd = nil
+			p.StopService()
 		}()
 	}
 	p.serverTimer.Reset(serverTTL)
 	p.lock.Unlock()
 }
 
+func (p *Project) StopService() {
+	p.watcher.Close()
+	p.watcher = nil
+
+	p.htmlCmd.Process.Kill()
+	p.htmlCmd.Wait()
+	p.htmlCmd = nil
+
+	p.cssCmd.Process.Kill()
+	p.cssCmd.Wait()
+	p.cssCmd = nil
+}
+
+func (p *Project) StartWatch() {
+	watcher, err := fsnotify.NewWatcher()
+
+	p.watcher = watcher
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	go func() {
+		for {
+			// if watcher close, set p.watcher nil then finish goroutine
+			if p.watcher == nil {
+				break
+			}
+
+			select {
+			case event := <-p.watcher.Events:
+				log.Println(event.Name)
+				log.Println("event:", event)
+				if event.Op&fsnotify.Write == fsnotify.Write {
+					log.Println("modified file:", event.Name)
+				}
+
+				sock, err := net.Dial("unix", p.CSSSocketPath)
+				checkErr(err)
+				sock.Close()
+			case err := <-p.watcher.Errors:
+				log.Println("error:", err)
+			}
+		}
+	}()
+
+	err = p.watcher.Add(p.Path + "/sass")
+	if err != nil {
+		log.Fatal(err)
+	}
+}
 func (p *Project) runServer(name string, cmd *exec.Cmd) error {
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
