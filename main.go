@@ -58,7 +58,7 @@ func (p *Project) StartService() {
 			p.CSSSocketPath = path.Join(p.Path, "css.socket")
 		}
 
-		p.StartWatch()
+		p.watchFiles()
 		go func() {
 			<-p.serverTimer.C
 			log.Println("stop " + p.Name() + " server")
@@ -82,7 +82,7 @@ func (p *Project) StopService() {
 	p.cssCmd = nil
 }
 
-func (p *Project) StartWatch() {
+func (p *Project) watchFiles() {
 	watcher, err := fsnotify.NewWatcher()
 
 	p.watcher = watcher
@@ -92,6 +92,7 @@ func (p *Project) StartWatch() {
 	}
 
 	go func() {
+	eventLoop:
 		for {
 			// if watcher close, set p.watcher nil then finish goroutine
 			if p.watcher == nil {
@@ -99,18 +100,28 @@ func (p *Project) StartWatch() {
 			}
 
 			select {
-			case event := <-p.watcher.Events:
-				log.Println(event.Name)
-				log.Println("event:", event)
-				if event.Op&fsnotify.Write == fsnotify.Write {
-					log.Println("modified file:", event.Name)
-				}
+			case event, ok := <-p.watcher.Events:
+				if ok {
+					log.Println(event.Name)
+					log.Println("event:", event)
+					if event.Op&fsnotify.Write == fsnotify.Write {
+						log.Println("modified file:", event.Name)
+					}
 
-				sock, err := net.Dial("unix", p.CSSSocketPath)
-				checkErr(err)
-				sock.Close()
-			case err := <-p.watcher.Errors:
-				log.Println("error:", err)
+					// touch css server
+					sock, err := net.Dial("unix", p.CSSSocketPath)
+					checkErr(err)
+					sock.Close()
+
+				} else {
+					break eventLoop
+				}
+			case err, ok := <-p.watcher.Errors:
+				if ok {
+					log.Println("error:", err)
+				} else {
+					break eventLoop
+				}
 			}
 		}
 	}()
