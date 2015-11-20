@@ -8,7 +8,7 @@ GIT
 
 GIT
   remote: https://github.com/tka/serve_ext
-  revision: 0f5cc9d376a6ee89bd2f78f016cf2d46c3ab56d3
+  revision: 0138bc8657b8affef687465d785f9b017351ea5c
   specs:
     serve_ext (0.0.0)
 
@@ -75,4 +75,4 @@ DEPENDENCIES
   slim
 
 BUNDLED WITH
-   1.10.5
+   1.10.6
