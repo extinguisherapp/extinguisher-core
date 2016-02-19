@@ -38,7 +38,7 @@ func (p *Project) Name() string {
 }
 
 func (p *Project) StartService() {
-	serverTTL := 5 * time.Second
+	serverTTL := 2 * time.Second
 
 	p.lock.Lock()
 	if p.htmlCmd == nil {
